@@ -5,40 +5,71 @@ from math import *
 from time import sleep
 
 import matplotlib.pyplot as plt
-import matplotlib
-from matplotlib.patches import Polygon
-from matplotlib.collections import PatchCollection
 
+from base import Shape
 MAX_VERTICES_DEFAULT = 8
 
 random.seed(1)
 
-class Polygon(object):
+class Polygon(Shape):
 
     def __init__(self, vertices):
+        '''
+            vertices are list of Point
+        '''
         self.ori_vertices = vertices
         self.vertices = []
         for each in vertices:
             self.vertices.append(Point(each))
+        self.edges = []
+        l = len(vertices)
+        for i in xrange(l):
+            self.edges.append(Line([self.vertices[i],
+                                   self.vertices[i+1 if i+1 < l else 0]]))
 
-    def whether_intersect(self, line):
-        nr_v = len(self.vertices)
+    def whether_intersect_polygon(self, polygon):
+        '''
+            judge whether intersect with polygon
+        '''
         flag = False
-        for i in xrange(nr_v):
-            if i == nr_v - 1:
-                if line.whether_intersect(Line(self.vertices[i], self.vertices[0])):
-                    flag = True
-                    break
-            else:
-                if line.whether_intersect(Line( (self.vertices[i], self.vertices[i+1]))):
-                    flag = True
+        for each in polygon2.edges:
+            if polygon1.whether_intersect_line(each):
+                flag = True
+                break
+        for each in polygon1.edges:
+            if polygon2.whether_intersect_line(each):
+                flag = True
+                if flag:
                     break
         return flag
 
-class Line(object):
+    def whether_intersect_line(self, line):
+        '''
+            judge whether intersect with line
+        '''
+        nr_v = len(self.vertices)
+        flag = False
+        for i in xrange(nr_v):
+            if line.whether_intersect(Line((self.vertices[i],
+                                            self.vertices[i+1 if i+1 < nr_v else 0]))):
+                flag = True
+                break
+        return flag
+
+    def whether_in(self, point):
+        l = len(polygon.vertices)
+        point = (point.x, point.y)
+        if point in convex_hull(polygon.ori_vertices+[point]):
+            return False
+        else:
+            return True
+
+
+class Line(Shape):
 
     def __init__(self, points):
         assert len(points) == 2
+        assert isinstance(points[0], Point)
         self.points = points
 
     def ccw(A,B,C):
@@ -51,7 +82,11 @@ class Line(object):
         D = line.points[1]
         return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
 
-class Point(object):
+
+class Point(Shape):
+    '''
+        not only a geometry shape but also contains info such as f g h
+    '''
 
     def __init__(self, xy, parent=None):
         self.x = xy[0]
@@ -70,16 +105,22 @@ class Point(object):
         self.prob_successor_and_distances.append((point,
                                                 self.dist(point)))
 
+
+'''
+    below is the part produce Polygons
+'''
+def cross(o, a, b):
+    '''
+        cross product of a-o, b-o
+    '''
+    return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
 def convex_hull(points):
     """
         compute convex hull of points
     """
     assert len(points) >= 3
     points = sorted(set(points))
-
-    #cross product
-    def cross(o, a, b):
-        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
 
     lower = []
     for p in points:
@@ -97,52 +138,28 @@ def convex_hull(points):
 
 def generate_a_polygon(max_vertices, pos_range):
     '''
-        pos_range is a list contain two pointsthat define a box polygon should be in
+        pos_range is a list contain two points that define a box the polygon should be in
     '''
-    points = [(random.uniform(pos_range[0][0], pos_range[1][0]),
-                   random.uniform(pos_range[0][1], pos_range[1][1])) \
-                   for _ in xrange(max_vertices)]
+    ru = random.uniform
+    pr0 = pos_range[0]
+    pr1 = pos_range[1]
+    points = [ (ru( pr0[0], pr1[0] ), ru( pr0[1], pr1[1] )) for _ in xrange(max_vertices)]
     points_left = convex_hull(points)
     if len(points_left) >= 3:
         return Polygon(points_left)
     else:
         return None
 
-def whether_in(polygon, point):
-    l = len(polygon.vertices)
-    point = (point.x, point.y)
-    if point in convex_hull(polygon.ori_vertices+[point]):
-        return False
-    else:
-        return True
-
-def whether_intersect(polygon1, polygon2):
-    flag = False
-    for each in polygon2.vertices:
-        if whether_in(polygon1, each):
-            flag = True
-            break
-    for each in polygon1.vertices:
-        if whether_in(polygon2, each):
-            flag = True
-            if flag:
-                break
-    return flag
-
 def generate_polygons(max_nr_polygon, max_vertices, pos_range):
     '''
-     generate polygons
+        generate polygons, pos_range is two points as above
     '''
     ru = random.uniform
-    parts = [((ru(pos_range[0][0], pos_range[1][0]),
-              ru(pos_range[0][0], pos_range[1][0])),
-              (ru(pos_range[0][0], pos_range[1][0]),
-              ru(pos_range[0][0], pos_range[1][0]))) \
-                 for _ in xrange(max_nr_polygon)]
+    prx = (pos_range[0][0], pos_range[1][0])
+    pry = (pos_range[0][1], pos_range[1][1])
+    parts = [( (ru(*prx), ru(*prx)), (ru(*pry), ru(*pry)) ) for _ in xrange(max_nr_polygon)]
     polygons = []
-    index = 0
     for part in parts:
-        index += 1
         part0 = sorted(part[0])
         part1 = sorted(part[1])
         part = [(part0[0], part1[0]),
@@ -152,7 +169,7 @@ def generate_polygons(max_nr_polygon, max_vertices, pos_range):
             continue
         flag = False
         for each in polygons:
-            if whether_intersect(each, new_polygon):
+            if each.whether_intersect_polygon(new_polygon):
                 flag = True
                 print 'intersect'
                 break
@@ -174,3 +191,5 @@ if __name__ == "__main__":
     for each in polygons:
         add_polygon_to_plot(each)
     plt.show()
+
+
