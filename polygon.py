@@ -7,6 +7,8 @@ import matplotlib
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 
+MAX_VERTICES_DEFAULT = 8
+
 def convex_hull(points):
     """
         compute convex hull of points
@@ -53,24 +55,50 @@ def whether_in(polygon, point):
         return False
 
 def whether_intersect(polygon1, polygon2):
-    flag = Flase
+    flag = False
     for each in polygon2:
         if whether_in(polygon1, each):
             flag = True
             break
+    return flag
 
-def generate_polygons(max_nr_polygon, pos_range):
+def generate_polygons(max_nr_polygon, max_vertices, pos_range):
     '''
      generate polygons
     '''
+    ru = random.uniform
+    parts = [((ru(pos_range[0][0], pos_range[1][0]),
+              ru(pos_range[0][0], pos_range[1][0])),
+              (ru(pos_range[0][0], pos_range[1][0]),
+              ru(pos_range[0][0], pos_range[1][0]))) \
+                 for _ in xrange(max_nr_polygon)]
+    polygons = []
+    for part in parts:
+        part0 = sorted(part[0])
+        part1 = sorted(part[1])
+        part = [(part0[0], part1[0]),
+                (part0[1], part1[1])]
+        new_polygon = generate_a_polygon(max_vertices, part)
+        flag = False
+        for each in polygons:
+            if whether_intersect(each, new_polygon):
+                flag = True
+                break
+        if flag:
+            continue
+        polygons.append(new_polygon)
+    return polygons
 
+def add_polygon_to_plot(polygon):
+    xs = [each[0] for each in polygon]
+    xs = xs + [xs[0]]
+    ys = [each[1] for each in polygon]
+    ys = ys + [ys[0]]
+    plt.plot(xs, ys)
 
 
 if __name__ == "__main__":
-    polygon_vexs = generate_a_polygon(10, [(0,1), (1,2)])
-    xs = [each[0] for each in polygon_vexs]
-    xs = xs + [xs[0]]
-    ys = [each[1] for each in polygon_vexs]
-    ys = ys + [ys[0]]
-    plt.plot(xs, ys)
+    polygons = generate_polygons(100, 10, ((1,2), (3,4)))
+    for each in polygons:
+        add_polygon_to_plot(each)
     plt.show()
