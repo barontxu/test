@@ -9,8 +9,11 @@ import matplotlib.pyplot as plt
 from base import Shape
 MAX_VERTICES_DEFAULT = 8
 
-random.seed(1)
 
+'''
+    below defines shapes and Point is one that special cause it
+    contains info for a star while running
+'''
 class Polygon(Shape):
 
     def __init__(self, vertices):
@@ -32,12 +35,25 @@ class Polygon(Shape):
             judge whether intersect with polygon
         '''
         flag = False
-        for each in polygon2.edges:
-            if polygon1.whether_intersect_line(each):
+        for each in polygon.vertices:
+            if self.whether_in(each):
                 flag = True
                 break
-        for each in polygon1.edges:
-            if polygon2.whether_intersect_line(each):
+        for each in self.vertices:
+            if flag:
+                break
+            if polygon.whether_in(each):
+                flag = True
+        for each in polygon.edges:
+            if flag:
+                break
+            if self.whether_intersect_line(each):
+                flag = True
+                break
+        for each in self.edges:
+            if flag:
+                break
+            if polygon.whether_intersect_line(each):
                 flag = True
                 if flag:
                     break
@@ -57,9 +73,9 @@ class Polygon(Shape):
         return flag
 
     def whether_in(self, point):
-        l = len(polygon.vertices)
+        l = len(self.vertices)
         point = (point.x, point.y)
-        if point in convex_hull(polygon.ori_vertices+[point]):
+        if point in convex_hull(self.ori_vertices+[point]):
             return False
         else:
             return True
@@ -72,6 +88,7 @@ class Line(Shape):
         assert isinstance(points[0], Point)
         self.points = points
 
+    @staticmethod
     def ccw(A,B,C):
         return (C.y-A.y)*(B.x-A.x) > (B.y-A.y)*(C.x-A.x)
 
@@ -80,7 +97,8 @@ class Line(Shape):
         B = self.points[1]
         C = line.points[0]
         D = line.points[1]
-        return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
+        return self.ccw(A,C,D) != self.ccw(B,C,D) and\
+                self.ccw(A,B,C) != self.ccw(A,B,D)
 
 
 class Point(Shape):
@@ -91,7 +109,7 @@ class Point(Shape):
     def __init__(self, xy, parent=None):
         self.x = xy[0]
         self.y = xy[1]
-        self.prob_successor_and_distances = []
+        self.successor_and_costs = []
         self.parent = parent
         self.index = -1
         self.g = -1
@@ -102,8 +120,7 @@ class Point(Shape):
         return sqrt( (self.x-point.x)**2 + (self.y-point.y)**2 )
 
     def add_successor(self, point):
-        self.prob_successor_and_distances.append((point,
-                                                self.dist(point)))
+        self.successor_and_costs.append((point, self.dist(point)))
 
 
 '''
@@ -159,6 +176,7 @@ def generate_polygons(max_nr_polygon, max_vertices, pos_range):
     pry = (pos_range[0][1], pos_range[1][1])
     parts = [( (ru(*prx), ru(*prx)), (ru(*pry), ru(*pry)) ) for _ in xrange(max_nr_polygon)]
     polygons = []
+    #split space into parts
     for part in parts:
         part0 = sorted(part[0])
         part1 = sorted(part[1])
@@ -171,13 +189,16 @@ def generate_polygons(max_nr_polygon, max_vertices, pos_range):
         for each in polygons:
             if each.whether_intersect_polygon(new_polygon):
                 flag = True
-                print 'intersect'
                 break
         if flag:
             continue
         polygons.append(new_polygon)
     return polygons
 
+
+'''
+    for plot
+'''
 def add_polygon_to_plot(polygon):
     xs = [each[0] for each in polygon.ori_vertices]
     xs = xs + [xs[0]]
