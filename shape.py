@@ -97,6 +97,13 @@ class Line(Shape):
         B = self.points[1]
         C = line.points[0]
         D = line.points[1]
+        def p_equal(p1, p2):
+            if p1.x == p2.x and p1.y == p2.y:
+                return True
+            return False
+        if p_equal(A, C) or p_equal(A, D) or \
+            p_equal(B, C) or p_equal(B, D):
+                return False
         return self.ccw(A,C,D) != self.ccw(B,C,D) and\
                 self.ccw(A,B,C) != self.ccw(A,B,D)
 
@@ -112,16 +119,15 @@ class Point(Shape):
         self.successor_and_costs = []
         self.parent = parent
         self.index = -1
-        self.g = -1
-        self.h = -1
-        self.f = -1
+        self.g = 0
+        self.h = 0
+        self.f = 0
 
     def dist(self, point):
         return sqrt( (self.x-point.x)**2 + (self.y-point.y)**2 )
 
     def add_successor(self, point):
         self.successor_and_costs.append((point, self.dist(point)))
-
 
 '''
     below is the part produce Polygons
